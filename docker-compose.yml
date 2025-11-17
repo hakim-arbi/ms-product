@@ -1,146 +1,5 @@
-# services:
-  # mongodb:
-    # image: mongo:7.0.5
-    # container_name: mongodb
-    # ports:
-      # - "27017:27017"
-    # environment:
-      # MONGO_INITDB_ROOT_USERNAME: root
-      # MONGO_INITDB_ROOT_PASSWORD: password
-      # MONGO_INITDB_DATABASE: product-service
-    # volumes:
-      # - ./data/mongodb:/data/db
-  # mysql:
-    # image: mysql:8.3.0
-    # container_name: mysql
-    # environment:
-      # MYSQL_ROOT_PASSWORD: mysql
-    # ports:
-      # - "3306:3306"
-    # volumes:
-      # - ./data/mysql:/var/lib/mysql
-      # - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
-  # zookeeper:
-    # image: confluentinc/cp-zookeeper:7.5.0
-    # hostname: zookeeper
-    # container_name: zookeeper
-    # ports:
-      # - "2181:2181"
-    # environment:
-      # ZOOKEEPER_CLIENT_PORT: 2181
-      # ZOOKEEPER_TICK_TIME: 2000
-
-  # broker:
-    # image: confluentinc/cp-kafka:7.5.0
-    # container_name: broker
-    # ports:
-      # - "9092:9092"
-      # - "29092:29092"
-    # depends_on:
-      # - zookeeper
-    # environment:
-      # KAFKA_BROKER_ID: 1
-      # KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      # KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      # KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
-      # KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
-  # schema-registry:
-    # image: confluentinc/cp-schema-registry:7.5.0
-    # hostname: schema-registry
-    # container_name: schema-registry
-    # depends_on:
-      # - broker
-    # ports:
-      # - "8085:8081"
-    # environment:
-      # SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      # SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
-      # SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
-  # kafka-ui:
-    # container_name: kafka-ui
-    # image: provectuslabs/kafka-ui:latest
-    # ports:
-      # - "8086:8080"
-    # depends_on:
-      # - broker
-    # environment:
-      # KAFKA_CLUSTERS_NAME: local
-      # KAFKA_CLUSTERS_BOOTSTRAPSERVERS: broker:29092
-           #KAFKA_CLUSTERS_SCHEMAREGISTRY: http://schema-registry:8081
-      # DYNAMIC_CONFIG_ENABLED: 'true'
-  # keycloak-mysql:
-    # container_name: keycloak-mysql
-    # image: mysql:8
-    # volumes:
-      # - ./volume-data/mysql_keycloak_data:/var/lib/mysql
-    # environment:
-      # MYSQL_ROOT_PASSWORD: root
-      # MYSQL_DATABASE: keycloak
-      # MYSQL_USER: keycloak
-      # MYSQL_PASSWORD: password
-  # keycloak:
-    # container_name: keycloak
-    # image: quay.io/keycloak/keycloak:24.0.1
-    # command: [ "start-dev", "--import-realm" ]
-    # environment:
-      # DB_VENDOR: MYSQL
-      # DB_ADDR: mysql
-      # DB_DATABASE: keycloak
-      # DB_USER: keycloak
-      # DB_PASSWORD: password
-      # KEYCLOAK_ADMIN: admin
-      # KEYCLOAK_ADMIN_PASSWORD: admin
-    # ports:
-      # - "8181:8080"
-    # volumes:
-      # - ./docker/keycloak/realms/:/opt/keycloak/data/import/
-    # depends_on:
-      # - keycloak-mysql
-  # loki:
-    # image: grafana/loki:main
-    # container_name: loki
-    # command: [ "-config.file=/etc/loki/local-config.yaml" ]
-    # ports:
-      # - "3100:3100"
-  # prometheus:
-    # image: prom/prometheus:v2.46.0
-    # container_name: prometheus
-    # command:
-      # - --enable-feature=exemplar-storage
-      # - --config.file=/etc/prometheus/prometheus.yml
-    # volumes:
-      # - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    # ports:
-      # - "9090:9090"
-  # tempo:
-    # image: grafana/tempo:2.2.2
-    # container_name: tempo
-    # command: [ "-config.file=/etc/tempo.yaml" ]
-    # volumes:
-      # - ./docker/tempo/tempo.yml:/etc/tempo.yaml:ro
-      # - ./data/tempo:/tmp/tempo
-    # ports:
-      # - "3110:3100"  # Tempo
-      # - "9411:9411" # zipkin
-  # grafana:
-    # image: grafana/grafana:10.1.0
-    # container_name: grafana
-    # volumes:
-      # - ./docker/grafana:/etc/grafana/provisioning/datasources:ro
-    # environment:
-      # - GF_AUTH_ANONYMOUS_ENABLED=true
-      # - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      # - GF_AUTH_DISABLE_LOGIN_FORM=true
-    # ports:
-      # - "3000:3000"
-
-
-
-
-
-
 services:
+  # ---- Bases de données ----
   mongodb:
     image: mongo:7.0.5
     container_name: mongodb
@@ -164,9 +23,9 @@ services:
       - ./data/mysql:/var/lib/mysql
       - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
 
+  # ---- Kafka stack ----
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
-    hostname: zookeeper
     container_name: zookeeper
     ports:
       - "2181:2181"
@@ -177,11 +36,11 @@ services:
   broker:
     image: confluentinc/cp-kafka:7.5.0
     container_name: broker
+    depends_on:
+      - zookeeper
     ports:
       - "9092:9092"
       - "29092:29092"
-    depends_on:
-      - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -191,7 +50,6 @@ services:
 
   schema-registry:
     image: confluentinc/cp-schema-registry:7.5.0
-    hostname: schema-registry
     container_name: schema-registry
     depends_on:
       - broker
@@ -203,32 +61,33 @@ services:
       SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
 
   kafka-ui:
-    container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
-    ports:
-      - "8086:8080"
+    container_name: kafka-ui
     depends_on:
       - broker
+    ports:
+      - "8086:8080"
     environment:
       KAFKA_CLUSTERS_NAME: local
       KAFKA_CLUSTERS_BOOTSTRAPSERVERS: broker:29092
       DYNAMIC_CONFIG_ENABLED: 'true'
 
+  # ---- Keycloak ----
   keycloak-mysql:
-    container_name: keycloak-mysql
     image: mysql:8
-    volumes:
-      - ./volume-data/mysql_keycloak_data:/var/lib/mysql
+    container_name: keycloak-mysql
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: keycloak
       MYSQL_USER: keycloak
       MYSQL_PASSWORD: password
+    volumes:
+      - ./volume-data/mysql_keycloak_data:/var/lib/mysql
 
   keycloak:
-    container_name: keycloak
     image: quay.io/keycloak/keycloak:24.0.1
-    command: [ "start-dev", "--import-realm" ]
+    container_name: keycloak
+    command: ["start-dev", "--import-realm"]
     environment:
       DB_VENDOR: MYSQL
       DB_ADDR: keycloak-mysql
@@ -244,10 +103,82 @@ services:
     depends_on:
       - keycloak-mysql
 
+  # ---- Microservices Spring Boot ----
+  product-service:
+    image: medhakimarbi/product-service:latest
+    container_name: product-service
+    ports:
+      - "8081:8080"
+    depends_on:
+      - mysql
+      - mongodb
+      - broker
+      - keycloak
+
+  order-service:
+    image: medhakimarbi/order-service:latest
+    container_name: order-service
+    ports:
+      - "8082:8080"
+    depends_on:
+      - mysql
+      - broker
+      - keycloak
+
+  inventory-service:
+    image: medhakimarbi/inventory-service:latest
+    container_name: inventory-service
+    ports:
+      - "8083:8080"
+    depends_on:
+      - mysql
+      - broker
+      - keycloak
+
+  notification-service:
+    image: medhakimarbi/notification-service:latest
+    container_name: notification-service
+    ports:
+      - "8084:8080"
+    depends_on:
+      - broker
+      - keycloak
+
+  discovery-service:
+    image: medhakimarbi/discovery-service:latest
+    container_name: discovery-service
+    ports:
+      - "8761:8761"
+
+  api-gateway:
+    image: medhakimarbi/api-gateway:latest
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - product-service
+      - order-service
+      - inventory-service
+      - notification-service
+      - discovery-service
+      - keycloak
+
+  # ---- Frontend Angular ----
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "4200:4200"
+    depends_on:
+      - api-gateway
+
+  # ---- Observabilité ----
   loki:
     image: grafana/loki:main
     container_name: loki
-    command: [ "-config.file=/etc/loki/local-config.yaml" ]
+    command: ["-config.file=/etc/loki/local-config.yaml"]
     ports:
       - "3100:3100"
 
@@ -265,13 +196,13 @@ services:
   tempo:
     image: grafana/tempo:2.2.2
     container_name: tempo
-    command: [ "-config.file=/etc/tempo.yaml" ]
+    command: ["-config.file=/etc/tempo.yaml"]
     volumes:
       - ./docker/tempo/tempo.yml:/etc/tempo.yaml:ro
       - ./data/tempo:/tmp/tempo
     ports:
-      - "3110:3100"  # Tempo
-      - "9411:9411"  # Zipkin
+      - "3110:3100"
+      - "9411:9411"
 
   grafana:
     image: grafana/grafana:10.1.0
